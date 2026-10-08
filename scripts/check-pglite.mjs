@@ -1,0 +1,1 @@
+﻿import { PGlite } from "@electric-sql/pglite"; async function check() { const db = new PGlite("./.pglite-local-db"); await db.waitReady; try { const res = await db.query("select count(*) from public.arcus_accounts;"); console.log("Success:", res.rows); } catch (e) { console.error("DB Error:", e); } process.exit(0); } check();
