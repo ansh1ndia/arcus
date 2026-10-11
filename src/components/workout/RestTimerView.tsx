@@ -13,6 +13,7 @@ function formatTime(seconds: number) {
 
 type Props = {
   endTime: number;
+  pausedRemaining?: number | null;
   audioEnabled: boolean;
   onAudioToggle: () => void;
   onChangeEndTime: (endTime: number) => void;
@@ -20,10 +21,14 @@ type Props = {
   onComplete: () => void;
 };
 
-export function RestTimerView({ endTime, audioEnabled, onAudioToggle, onChangeEndTime, onDismiss, onComplete }: Props) {
-  const [remaining, setRemaining] = useState(() => Math.max(0, Math.ceil((endTime - Date.now()) / 1000)));
+export function RestTimerView({ endTime, pausedRemaining = null, audioEnabled, onAudioToggle, onChangeEndTime, onDismiss, onComplete }: Props) {
+  const [remaining, setRemaining] = useState(() => pausedRemaining ?? Math.max(0, Math.ceil((endTime - Date.now()) / 1000)));
 
   useEffect(() => {
+    if (pausedRemaining !== null) {
+      setRemaining(pausedRemaining);
+      return;
+    }
     let completed = false;
     const update = () => {
       const left = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
@@ -38,12 +43,12 @@ export function RestTimerView({ endTime, audioEnabled, onAudioToggle, onChangeEn
     update();
     const timer = window.setInterval(update, 250);
     return () => window.clearInterval(timer);
-  }, [endTime, audioEnabled, onComplete]);
+  }, [endTime, pausedRemaining, audioEnabled, onComplete]);
 
   const changeRemaining = (next: number) => onChangeEndTime(Date.now() + Math.max(0, Math.min(1800, next)) * 1000);
 
-  return <aside className={styles.restTimer} aria-label="Rest timer">
-    <div className={styles.restTime}><Clock3 size={19}/><div><span>Rest timer</span><strong>{formatTime(remaining)}</strong></div></div>
+  return <aside className={styles.restTimer} aria-label={pausedRemaining === null ? "Rest timer" : "Paused rest timer"}>
+    <div className={styles.restTime}><Clock3 size={19}/><div><span>{pausedRemaining === null ? "Rest timer" : "Paused"}</span><strong>{formatTime(remaining)}</strong></div></div>
     <label className={styles.restEdit}>Seconds<NumericInput aria-label="Edit remaining rest time" min="0" max="1800" value={remaining} onChange={event=>changeRemaining(Number(event.target.value))}/></label>
     <div className={styles.restControls}>
       <button type="button" onClick={() => changeRemaining(remaining - 15)} aria-label="Subtract 15 seconds">−15</button>

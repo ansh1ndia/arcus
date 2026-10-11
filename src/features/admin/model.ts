@@ -11,17 +11,26 @@ export type AdminUserRow = {
   isSuspended: boolean;
   suspendedUntil: string | null;
   role: "OWNER" | "MODERATOR" | "USER";
+  warningCount: number;
+  isPro: boolean;
 };
+
+export type AdminUserFilter = "all" | "pro" | "warned" | "suspended" | "banned" | "admins";
 
 export type AdminExerciseRow = {
   id: string;
   name: string;
   muscle: string;
   equipment: string;
-  source: "built-in" | "custom";
+  source: "built-in" | "custom" | "admin";
   ownerUsername: string | null;
   ownerAccountId: string | null;
   libraryId: string | null;
+  managed?: boolean;
+  category?: string;
+  primaryMuscles?: string[];
+  secondaryMuscles?: string[];
+  instructions?: string;
 };
 
 export type AdminActivityRow = {
@@ -47,6 +56,7 @@ export type AdminFeatureFlags = Record<FeatureFlagKey, boolean>;
 export type AdminFeatureFlagState = { flags: AdminFeatureFlags; configured: boolean };
 export type AdminAccessRow = { accountId: string; username: string; email: string; role: "MODERATOR"; grantedBy: string; grantedAt: string };
 export type AdminAccessState = { admins: AdminAccessRow[]; configured: boolean };
+export type AdminAnnouncement = { message: string; url: string; enabled: boolean };
 
 export type AdminTablePage<T> = {
   rows: T[];
@@ -54,6 +64,7 @@ export type AdminTablePage<T> = {
   page: number;
   pageSize: number;
   query: string;
+  status?: AdminUserFilter;
 };
 
 export type AdminOverview = {
@@ -61,8 +72,19 @@ export type AdminOverview = {
   workoutsToday: number;
   totalExercises: number;
   signupsThisWeek: number;
-  growth: Array<{ date: string; users: number }>;
+  activity14: Array<{ date: string; signups: number; workouts: number }>;
   asOf: string;
   builtInExercises: number;
   customExercises: number;
+};
+
+export type AdminRevenue = {
+  monthlySubscribers: number;
+  yearlySubscribers: number;
+  monthlyRecurringRevenue: number;
+  annualRunRate: number;
+  totalUsers: number;
+  proUsers: number;
+  conversionRate: number;
+  recent: Array<{ id: string; name: string; username: string; interval: "month" | "year"; startedAt: string; status: string }>;
 };

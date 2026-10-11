@@ -169,6 +169,19 @@ create index if not exists arcus_subscriptions_account_status_idx
 alter table public.arcus_workouts add column if not exists is_public boolean not null default true;
 create index if not exists arcus_workouts_public_updated_idx
   on public.arcus_workouts(is_public, updated_at desc);
+
+create table if not exists public.arcus_admin_exercises (
+  id text primary key check (id ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
+  payload jsonb not null check (jsonb_typeof(payload) = 'object'),
+  deleted boolean not null default false,
+  created_by uuid not null references public.arcus_accounts(id) on delete restrict,
+  updated_by uuid not null references public.arcus_accounts(id) on delete restrict,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists arcus_admin_exercises_active_name_idx
+  on public.arcus_admin_exercises (lower(payload->>'name')) where deleted = false;
+
 create index if not exists arcus_social_recent_idx
   on public.arcus_workouts(updated_at desc, id desc, account_id desc)
   where is_public=true and payload->>'status'='completed';
@@ -239,9 +252,9 @@ create index if not exists arcus_sleep_logs_account_date_idx
 create table if not exists public.arcus_admin_audit (
   id uuid primary key default gen_random_uuid(),
   actor_id uuid not null references public.arcus_accounts(id) on delete restrict,
-  target_type text not null check (target_type in ('user', 'exercise')),
+  target_type text not null check (target_type in ('user', 'exercise', 'settings')),
   target_id text not null,
-  action text not null check (action in ('user_updated', 'user_banned', 'user_unbanned', 'exercise_updated', 'exercise_deleted')),
+  action text not null check (action in ('user_updated', 'user_viewed', 'user_banned', 'user_unbanned', 'user_warned', 'user_suspended', 'user_unsuspended', 'exercise_created', 'exercise_updated', 'exercise_deleted', 'feature_flag_updated', 'announcement_updated', 'admin_granted', 'admin_revoked')),
   details jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );

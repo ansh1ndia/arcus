@@ -2,10 +2,13 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Dumbbell, LoaderCircle, Pencil, Trash2 } from "lucide-react";
 import type { AdminExerciseRow } from "@/features/admin/model";
-import { AdminActionDialog, submitAdminAction } from "./admin-action-dialog";
+import { submitAdminAction } from "./admin-action-request";
 import { DetailField, RowActions } from "./row-actions";
+
+const AdminActionDialog = dynamic(() => import("./admin-action-dialog").then(module => module.AdminActionDialog), { ssr: false });
 
 export function ExerciseManagementActions({ exercise }: { exercise: AdminExerciseRow }) {
   const router = useRouter();

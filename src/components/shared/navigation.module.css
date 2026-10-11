@@ -20,7 +20,7 @@
     align-items:center;
     justify-content:space-between;
     gap:12px;
-    padding:max(6px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 6px max(16px,env(safe-area-inset-left,0px));
+    padding:max(12px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));
     border-bottom:0;
     background:var(--canvas);
     -webkit-backdrop-filter:blur(16px) saturate(180%);
@@ -28,7 +28,10 @@
     transform:translate3d(0,0,0);
   }
   .mobileHeader :global(label) { flex:0 0 auto; }
-  .mobileHeader :global(.brand-mark) { width:25px; height:25px; }
+  :global(html[data-theme=light]) .mobileHeader { border-bottom:1px solid #27272a; background:rgba(24,24,27,.96); color:#fff; }
+  :global(html[data-theme=light]) .mobileBrand { color:#fff; }
+  :global(html[data-theme=light]) .mobileHeader :global(label) { color:#d4d4d8; }
+  :global(html[data-theme=light]) .mobileHeader :global(label:hover) { color:#fff; background:rgba(255,255,255,.1); }
   .mobile:global(.mobile-navigation) {
     position:fixed;
     z-index:50;
@@ -46,9 +49,10 @@
     backdrop-filter:blur(16px) saturate(180%);
     transform:translate3d(0,0,0);
   }
-  .mobile:global(.mobile-navigation)>a { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; min-width:0; min-height:52px; padding:5px 4px; border-radius:12px; color:var(--feature-muted); font-size:11px; font-weight:500; animation:none; }
+  .mobile:global(.mobile-navigation)>a { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; min-width:0; min-height:52px; padding:5px 4px; border-radius:12px; color:var(--feature-muted); font-size:11px; font-weight:500; animation:none; }
   .mobile:global(.mobile-navigation)>a>svg { width:22px; height:22px; }
   .mobile:global(.mobile-navigation)>a[aria-current] { background:#3b82f614; color:#72a7ff; }
   .mobile a:focus-visible { outline:2px solid #79aaff; outline-offset:0; }
-  :global(html[data-theme=light]) .mobile:global(.mobile-navigation)>a[aria-current] { color:#2563eb; }
+  :global(html[data-theme=light]) .mobile:global(.mobile-navigation)>a[aria-current] { background:#e4e4e7; color:#18181b; font-weight:700; }
+  :global(html[data-theme=light]) .mobile:global(.mobile-navigation)>a[aria-current]::after { position:absolute; bottom:1px; left:50%; width:18px; height:2px; border-radius:999px; background:#2563eb; content:""; transform:translateX(-50%); }
 }

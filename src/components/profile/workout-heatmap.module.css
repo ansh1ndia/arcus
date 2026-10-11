@@ -46,3 +46,4 @@
   .tooltip { align-items:flex-start; }
 }
 @media(prefers-reduced-motion:reduce) { .skeleton { animation:none; } }
+:global(html[data-theme="light"]) .stats article,:global(html[data-theme="light"]) .heatmap { border-color:rgba(228,228,231,.9); box-shadow:0 2px 8px rgba(0,0,0,.03); background:#fff; }

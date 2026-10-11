@@ -9,24 +9,24 @@ import styles from "./body-heatmap.module.css";
 type View = "front" | "back";
 type MuscleShape = { id: MuscleGroup; d: string };
 const front: MuscleShape[] = [
-  { id: "shoulders", d: "M67 54 Q53 51 47 64 L53 80 Q61 77 68 69 M113 54 Q127 51 133 64 L127 80 Q119 77 112 69" },
-  { id: "chest", d: "M69 67 Q77 61 89 66 L89 84 Q78 86 67 78 Z M111 67 Q103 61 91 66 L91 84 Q102 86 113 78 Z" },
-  { id: "biceps", d: "M52 82 Q58 77 64 80 L62 106 Q58 111 52 106 Z M128 82 Q122 77 116 80 L118 106 Q122 111 128 106 Z" },
-  { id: "forearms", d: "M51 111 L56 108 L52 143 L46 141 Z M129 111 L124 108 L128 143 L134 141 Z" },
-  { id: "abs", d: "M78 88 Q90 85 102 88 L100 122 Q90 127 80 122 Z" },
-  { id: "quads", d: "M74 132 Q84 128 89 134 L87 190 Q78 194 70 185 Z M106 132 Q96 128 91 134 L93 190 Q102 194 110 185 Z" },
-  { id: "calves", d: "M75 204 Q82 199 87 203 L85 244 Q79 249 74 243 Z M105 204 Q98 199 93 203 L95 244 Q101 249 106 243 Z" },
+  { id: "shoulders", d: "M65 58 Q54 58 51 70 L52 81 Q59 80 65 73 L69 62 Z M115 58 Q126 58 129 70 L128 81 Q121 80 115 73 L111 62 Z" },
+  { id: "chest", d: "M71 65 Q79 61 88 67 L88 85 Q77 89 67 80 L67 72 Z M109 65 Q101 61 92 67 L92 85 Q103 89 113 80 L113 72 Z" },
+  { id: "biceps", d: "M52 85 Q58 84 62 80 L60 102 Q58 111 49 112 L48 105 Z M128 85 Q122 84 118 80 L120 102 Q122 111 131 112 L132 105 Z" },
+  { id: "forearms", d: "M48 116 L56 114 Q54 128 47 143 L42 141 Z M132 116 L124 114 Q126 128 133 143 L138 141 Z" },
+  { id: "abs", d: "M79 92 Q90 89 101 92 L100 104 L92 106 L92 126 L88 126 L88 106 L80 104 Z M80 108 L86 109 L86 124 L81 120 Z M100 108 L94 109 L94 124 L99 120 Z" },
+  { id: "quads", d: "M76 139 Q82 133 87 140 L85 175 L82 194 L75 191 Q69 176 73 156 Z M104 139 Q98 133 93 140 L95 175 L98 194 L105 191 Q111 176 107 156 Z" },
+  { id: "calves", d: "M76 205 Q82 202 84 209 L82 232 L78 245 L73 245 L72 227 Z M104 205 Q98 202 96 209 L98 232 L102 245 L107 245 L108 227 Z" },
 ];
 const back: MuscleShape[] = [
-  { id: "traps", d: "M79 62 Q90 54 101 62 L109 75 L101 83 L91 76 L81 83 L71 75 Z" },
-  { id: "shoulders", d: "M67 54 Q53 51 47 64 L53 80 Q61 77 68 69 M113 54 Q127 51 133 64 L127 80 Q119 77 112 69" },
-  { id: "upper_back", d: "M70 76 L89 80 L89 108 L72 104 Z M110 76 L91 80 L91 108 L108 104 Z" },
-  { id: "lats", d: "M72 83 Q79 82 87 91 L85 126 Q76 129 68 116 Z M108 83 Q101 82 93 91 L95 126 Q104 129 112 116 Z" },
-  { id: "triceps", d: "M52 82 Q58 77 64 80 L62 106 Q58 111 52 106 Z M128 82 Q122 77 116 80 L118 106 Q122 111 128 106 Z" },
-  { id: "forearms", d: "M51 111 L56 108 L52 143 L46 141 Z M129 111 L124 108 L128 143 L134 141 Z" },
-  { id: "glutes", d: "M75 126 Q90 119 105 126 L107 146 Q100 155 90 148 Q80 155 73 146 Z" },
-  { id: "hamstrings", d: "M74 149 Q84 149 88 155 L86 194 Q78 198 70 190 Z M106 149 Q96 149 92 155 L94 194 Q102 198 110 190 Z" },
-  { id: "calves", d: "M75 204 Q82 199 87 203 L85 244 Q79 249 74 243 Z M105 204 Q98 199 93 203 L95 244 Q101 249 106 243 Z" },
+  { id: "traps", d: "M81 54 L88 56 L88 79 L73 66 Z M99 54 L92 56 L92 79 L107 66 Z" },
+  front[0],
+  { id: "upper_back", d: "M72 71 L86 82 L86 101 L72 91 L68 79 Z M108 71 L94 82 L94 101 L108 91 L112 79 Z" },
+  { id: "lats", d: "M69 85 L83 103 L86 123 L77 127 Q72 115 70 104 Z M111 85 L97 103 L94 123 L103 127 Q108 115 110 104 Z" },
+  { id: "triceps", d: front[2].d },
+  front[3],
+  { id: "glutes", d: "M76 130 Q82 127 88 131 L88 150 Q80 156 72 148 Z M104 130 Q98 127 92 131 L92 150 Q100 156 108 148 Z" },
+  { id: "hamstrings", d: "M73 154 Q80 158 87 155 L85 178 L82 194 L75 191 Q70 175 73 154 Z M107 154 Q100 158 93 155 L95 178 L98 194 L105 191 Q110 175 107 154 Z" },
+  front[6],
 ];
 const labels: Record<MuscleGroup, string> = { chest: "Chest", lats: "Lats", upper_back: "Upper back", traps: "Traps", shoulders: "Shoulders", biceps: "Biceps", triceps: "Triceps", forearms: "Forearms", abs: "Abs", quads: "Quads", hamstrings: "Hamstrings", glutes: "Glutes", calves: "Calves" };
 
@@ -60,8 +60,9 @@ export function BodyHeatmap() {
     <p className={styles.description}>Recent completed working sets, grouped by primary muscle.</p>
     {status === "loading" ? <div className={styles.skeleton} role="status" aria-label="Loading muscle activity"/> : status === "signed-out" ? <div className={styles.empty}><Dumbbell size={19}/><span>Sign in to see your recovery map.</span><Link href="/login">Sign in <ArrowUpRight size={14}/></Link></div> : status === "error" ? <p className={styles.emptyText} role="status">Recent activity could not be loaded.</p> : <>
       <div className={styles.bodyArea}>
-        <svg className={styles.figure} viewBox="0 0 180 270" role="img" aria-label={`${view === "front" ? "Front" : "Back"} muscle anatomy map`}>
-          <path className={styles.silhouette} d="M90 13c-12 0-19 9-19 21 0 9 4 16 10 19l-9 5c-14 2-25 11-28 24l-9 35 9 4 13-30 1 36 9 3-3 61 9 2 8-53 9 53 9-2-3-61 9-3 1-36 13 30 9-4-9-35c-3-13-14-22-28-24l-9-5c6-3 10-10 10-19 0-12-7-21-19-21zm-9 178-9 53 8 2 10-48 10 48 8-2-9-53z"/>
+        <svg className={styles.figure} viewBox="0 0 180 270" role="group" aria-label={`${view === "front" ? "Front" : "Back"} muscle anatomy map`}>
+          <ellipse className={styles.silhouette} cx="90" cy="29" rx="12" ry="17"/>
+          <path className={styles.silhouette} d="M83 46 L83 52 Q76 55 65 55 Q51 56 47 71 L44 103 L38 137 L35 150 Q38 155 43 153 L48 146 L60 115 L65 88 L68 105 L74 126 Q69 140 68 160 L69 187 L73 201 Q68 220 69 238 L69 250 L65 256 Q73 261 81 256 L84 237 L87 213 L87 197 L90 156 L93 197 L93 213 L96 237 L99 256 Q107 261 115 256 L111 250 L111 238 Q112 220 107 201 L111 187 L112 160 Q111 140 106 126 L112 105 L115 88 L120 115 L132 146 L137 153 Q142 155 145 150 L142 137 L136 103 L133 71 Q129 56 115 55 Q104 55 97 52 L97 46 Z"/>
           {activeShapes.map((shape) => <path key={`${view}-${shape.id}`} data-muscle={shape.id} className={`${styles.muscle} ${styles[`fatigue_${fatigueFor(shape.id)}`]} ${selected === shape.id ? styles.selected : ""}`} d={shape.d} tabIndex={0} role="button" aria-label={`${labels[shape.id]}: ${activityMap.get(shape.id)?.sets ?? 0} working sets in the last 72 hours`} onMouseEnter={() => setSelected(shape.id)} onFocus={() => setSelected(shape.id)} onClick={() => setSelected(selected === shape.id ? null : shape.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelected(shape.id); } }}/>) }
         </svg>
         <div className={styles.legend} aria-label="Recovery status legend"><span><i data-level="high"/>0–24h</span><span><i data-level="medium"/>24–48h</span><span><i data-level="nearly-recovered"/>48–72h</span><span><i data-level="fresh"/>Ready</span></div>

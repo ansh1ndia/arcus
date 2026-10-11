@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   ChevronRight,
   Dumbbell,
+  BadgeIndianRupee,
   LayoutDashboard,
   LoaderCircle,
   ScrollText,
@@ -28,6 +29,7 @@ const destinations = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/users", label: "Users", icon: UsersRound },
   { href: "/admin/exercises", label: "Exercise Database", icon: Dumbbell },
+  { href: "/admin/revenue", label: "Revenue", icon: BadgeIndianRupee },
   { href: "/admin/settings", label: "Settings", icon: Settings2 },
   { href: "/admin/audit", label: "Audit Log", icon: ScrollText },
 ];

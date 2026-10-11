@@ -10,6 +10,7 @@ import { setEntryError } from "@/features/workouts/set-validation";
 import { useProfile } from "@/components/shared/user-profile-provider";
 import { ExercisePicker } from "@/components/workout/exercise-picker";
 import { exerciseCatalog, type Exercise } from "@/features/exercises/catalog";
+import { getManagedExerciseCatalog } from "@/features/exercises/managed-catalog";
 import { getExercisePreferences, listCustomExercises } from "@/features/local-data/repository";
 import type { PickerPreference } from "@/features/exercises/picker";
 import { calculateWorkoutTotals, isCardioExercise, MAX_WORKOUT_MEDIA, type LoggedSet, type WorkoutExercise, type WorkoutRecord } from "@/features/workouts/model";
@@ -53,8 +54,8 @@ export function WorkoutEditor({ workout, history, onCancel, onSaved }: {
     return () => document.body.classList.remove("workout-editing");
   }, []);
   useEffect(() => {
-    void Promise.all([listCustomExercises(), getExercisePreferences()]).then(([custom, settings]) => {
-      setCatalog([...exerciseCatalog, ...custom]); setPickerPreferences(settings);
+    void Promise.all([getManagedExerciseCatalog(), listCustomExercises(), getExercisePreferences()]).then(([globalCatalog, custom, settings]) => {
+      setCatalog([...globalCatalog, ...custom]); setPickerPreferences(settings);
     }).catch(() => undefined);
   }, []);
   useEffect(() => {

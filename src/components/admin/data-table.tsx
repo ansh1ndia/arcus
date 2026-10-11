@@ -31,6 +31,7 @@ type DataTableProps<T> = {
   emptyTitle: string;
   emptyDescription: string;
   filters?: DataTableFilter[];
+  preservedParams?: Record<string, string>;
   tableClassName?: string;
 };
 
@@ -59,6 +60,7 @@ export function DataTable<T>({
   emptyTitle,
   emptyDescription,
   filters = [],
+  preservedParams = {},
   tableClassName = "min-w-[720px]",
 }: DataTableProps<T>) {
   const router = useRouter();
@@ -87,6 +89,7 @@ export function DataTable<T>({
     focusAfterNavigation.current = active instanceof HTMLElement && (form.current?.contains(active) || active === clearResults.current) ? active.id : null;
     const params = new URLSearchParams();
     if (query.trim()) params.set("q", query.trim());
+    for (const [name, value] of Object.entries(preservedParams)) if (value) params.set(name, value);
     for (const [name, value] of values) if (value) params.set(name, value);
     if (page > 1) params.set("page", String(page));
     const queryString = params.toString();

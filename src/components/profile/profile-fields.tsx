@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { DEFAULT_PREFERENCES, type TrainingGoal, type UserProfile } from "@/features/profile/model";
 import { exerciseCatalog, type Exercise } from "@/features/exercises/catalog";
+import { getManagedExerciseCatalog } from "@/features/exercises/managed-catalog";
 import { listCustomExercises } from "@/features/local-data/repository";
 import { getCompletedWorkouts } from "@/features/workouts/repository";
 import type { WorkoutRecord } from "@/features/workouts/model";
@@ -12,7 +13,7 @@ import { dateKey, fromDisplayWeight, toDisplayWeight, formatWeight, goalProgress
 export function ProfileFields({profile,onChange}:{profile:UserProfile;onChange:(profile:UserProfile)=>void}) {
   const [catalog,setCatalog]=useState<Exercise[]>(exerciseCatalog);
   const [history,setHistory]=useState<WorkoutRecord[]>([]);
-  useEffect(()=>{void Promise.all([listCustomExercises(),getCompletedWorkouts()]).then(([custom,workouts])=>{setCatalog([...exerciseCatalog,...custom]);setHistory(workouts);}).catch(()=>undefined);},[]);
+  useEffect(()=>{void Promise.all([getManagedExerciseCatalog(),listCustomExercises(),getCompletedWorkouts()]).then(([globalCatalog,custom,workouts])=>{setCatalog([...globalCatalog,...custom]);setHistory(workouts);}).catch(()=>undefined);},[]);
   const prefs={...DEFAULT_PREFERENCES,...profile.preferences}; const units=prefs.units;
   const metrics=profile.bodyMetrics??{weight:null,bodyFat:null}; const goals=profile.targetGoals??[];
   const height=profile.height_cm??0;

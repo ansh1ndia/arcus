@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, Database, LoaderCircle, RefreshCw, Search, Settings2, UsersRound, X } from "lucide-react";
+import { BookOpen, Database, LoaderCircle, RefreshCw, Search, Settings2, UsersRound, X, Zap } from "lucide-react";
+import { revalidateArcusPages } from "@/features/admin/operations";
 
 const commands = [
   { title: "Go to Users", detail: "Open account directory", href: "/admin/users", icon: UsersRound },
@@ -60,6 +61,13 @@ export function AdminCommandPalette() {
     router.refresh();
   }
 
+  async function revalidatePages() {
+    setBusy(true); setStatus("");
+    try { setStatus(await revalidateArcusPages()); }
+    catch { setStatus("Could not revalidate ARCUS pages. Check your admin access and retry."); }
+    finally { setBusy(false); }
+  }
+
   return <>
     <button type="button" onClick={() => { setOpen(true); setQuery(""); }} className="admin-button inline-flex h-9 items-center gap-2 rounded-lg border border-[#292a30] bg-[#111114] px-3 text-xs text-[#a1a1aa] hover:border-[#3b82f6]/50 hover:text-white" aria-label="Open command palette" title="Command palette · Ctrl K">
       <Search size={14} aria-hidden="true"/><span className="hidden sm:inline">Commands</span><kbd className="rounded border border-white/10 px-1.5 py-0.5 font-mono text-[10px] text-zinc-500">⌘K</kbd>
@@ -85,6 +93,9 @@ export function AdminCommandPalette() {
           </button>
           <button type="button" onClick={refreshData} className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-zinc-200 hover:bg-white/[0.06]">
             <RefreshCw size={16} className="text-zinc-500" aria-hidden="true"/><span className="flex-1 text-sm">Force Refresh Data<small className="ml-2 text-xs text-zinc-600">Re-fetch the current admin page</small></span>
+          </button>
+          <button type="button" onClick={() => void revalidatePages()} disabled={busy} className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-zinc-200 hover:bg-white/[0.06] disabled:opacity-50">
+            {busy ? <LoaderCircle size={16} className="animate-spin text-zinc-500" aria-hidden="true"/> : <Zap size={16} className="text-zinc-500" aria-hidden="true"/>}<span className="flex-1 text-sm">Revalidate All Static Pages<small className="ml-2 text-xs text-zinc-600">Refresh cached routes under the app layout</small></span>
           </button>
         </div>
         <footer className="flex items-center justify-between border-t border-white/[0.08] px-4 py-2.5 text-[10px] text-zinc-600"><span>ARCUS owner console</span><span>ESC to close</span></footer>

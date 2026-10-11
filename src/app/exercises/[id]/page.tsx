@@ -10,6 +10,7 @@ import { useProfile } from "@/components/shared/user-profile-provider";
 import { formatWeight,formatLoadReason,toDisplayWeight } from "@/features/training/logic";
 import { useLocalRouteId } from "@/components/shared/use-local-route-id";
 import { exerciseCatalog, type Exercise } from "@/features/exercises/catalog";
+import { getManagedExerciseCatalog } from "@/features/exercises/managed-catalog";
 import { usePageTitle } from "@/components/shared/page-title";
 import { findExerciseAlternatives } from "@/features/exercises/alternatives";
 import { findPersonalRecords, recommendNextLoad } from "@/features/analytics/engine";
@@ -29,9 +30,9 @@ export default function ExerciseDetailPage() {
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([listCustomExercises(), getCompletedWorkouts(), getExercisePreferences()]).then(([custom, history, preferences]) => {
+    void Promise.all([getManagedExerciseCatalog(), listCustomExercises(), getCompletedWorkouts(), getExercisePreferences()]).then(([globalCatalog, custom, history, preferences]) => {
       if (cancelled) return;
-      const all = [...exerciseCatalog, ...custom];
+      const all = [...globalCatalog, ...custom];
       setCatalog(all); setExercise(all.find((item) => item.id === id) ?? null); setWorkouts(history); setFavorite(preferences.find((item) => item.id === id)?.favorite ?? false); setReady(true);
     }).catch(() => { if (!cancelled) setReady(true); });
     return () => { cancelled = true; };
