@@ -12,9 +12,7 @@ import {
   YAxis,
   type TooltipContentProps,
 } from "recharts";
-import type { AdminOverview } from "@/features/admin/model";
-
-type GrowthPoint = AdminOverview["growth"][number];
+type GrowthPoint = { date: string; users: number };
 const numberFormat = new Intl.NumberFormat("en");
 const compactFormat = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
 const shortDateFormat = new Intl.DateTimeFormat("en", { month: "short", day: "numeric", timeZone: "UTC" });

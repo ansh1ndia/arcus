@@ -1,10 +1,12 @@
 "use client";
 
 import { Dumbbell } from "lucide-react";
+import dynamic from "next/dynamic";
 import type { AdminExerciseRow, AdminTablePage } from "@/features/admin/model";
 import { DataTable, type DataTableColumn } from "./data-table";
 import { ExerciseManagementActions } from "./exercise-management-actions";
-import { ExerciseFormModal } from "./ExerciseFormModal";
+
+const ExerciseFormModal = dynamic(() => import("./ExerciseFormModal").then(module => module.ExerciseFormModal), { ssr: false, loading: () => <span className="inline-block h-9 w-16" aria-hidden="true"/> });
 
 function displayLabel(value: string) { return value.replace(/[_-]+/g, " ").replace(/\b\w/g, letter => letter.toUpperCase()); }
 function sourceLabel(row: AdminExerciseRow) {

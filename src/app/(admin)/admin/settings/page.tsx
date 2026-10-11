@@ -4,6 +4,7 @@ import { isOwnerAccount, requireAdmin } from "@/lib/auth/admin";
 import { getAdminAccessState, getAdminActivity, getAdminGlobalAnnouncement } from "@/features/admin/repository";
 import { AdminAccessPanel } from "@/components/admin/admin-access-panel";
 import { GlobalAnnouncementEditor } from "@/components/admin/global-announcement-editor";
+import { RevalidatePagesButton } from "@/components/admin/revalidate-pages-button";
 
 export const metadata: Metadata = { title: "Settings", description: "Review recent owner actions and ARCUS platform configuration." };
 
@@ -15,6 +16,7 @@ const activityLabels: Record<string, string> = {
   exercise_updated: "Edited a custom exercise",
   exercise_deleted: "Removed a custom exercise",
   user_warned: "Issued a warning",
+  user_unwarned: "Cleared a warning",
   user_suspended: "Suspended a user for 7 days",
   user_unsuspended: "Lifted a user suspension",
   feature_flag_updated: "Updated a feature flag",
@@ -27,7 +29,7 @@ export default async function AdminSettingsPage() {
   const [account, activity] = await Promise.all([requireAdmin(), getAdminActivity()]);
   const owner = isOwnerAccount(account);
   const access = owner ? await getAdminAccessState() : null;
-  const announcement = owner ? await getAdminGlobalAnnouncement() : "";
+  const announcement = owner ? await getAdminGlobalAnnouncement() : { message: "", url: "", enabled: false };
   return <section>
     <p className="admin-eyebrow">{owner ? "Owner controls" : "Moderator workspace"}</p>
     <h1 className="admin-page-title">Settings</h1>
@@ -54,7 +56,8 @@ export default async function AdminSettingsPage() {
       </article>
     </div>
     {access && <AdminAccessPanel initialState={access}/>}
-    {owner && <GlobalAnnouncementEditor initialMessage={announcement}/>}
+    {owner && <GlobalAnnouncementEditor initialState={announcement}/>}
+    <article className="mt-6 rounded-2xl border border-stone-200 bg-white p-6 sm:p-8"><h2 className="text-lg font-semibold tracking-tight">Edge cache</h2><p className="mb-4 mt-1 text-sm leading-6 text-stone-500">Ask Next.js to revalidate routes under the root layout. Static pages refresh on the next request.</p><RevalidatePagesButton/></article>
     {owner && <article className="mt-6 rounded-2xl border border-stone-200 bg-white p-6 sm:p-8"><div className="flex items-center gap-3"><Download className="text-emerald-900" size={22} aria-hidden="true"/><div><h2 className="text-lg font-semibold tracking-tight">Export platform data</h2><p className="mt-1 text-sm text-stone-500">Owner-only CSV downloads generated from current database records.</p></div></div><div className="mt-5 flex flex-wrap gap-3"><a className="admin-button inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50" href="/api/admin/export?kind=users"><Download size={15} aria-hidden="true"/>Export users CSV</a><a className="admin-button inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50" href="/api/admin/export?kind=workouts"><Download size={15} aria-hidden="true"/>Export workouts CSV</a></div></article>}
     <article className="mt-6 rounded-2xl border border-stone-200 bg-white p-6 sm:p-8">
       <div className="flex items-center gap-3"><Clock3 className="text-emerald-900" size={22} aria-hidden="true"/><div><h2 className="text-lg font-semibold tracking-tight">Management activity</h2><p className="mt-1 text-sm text-stone-500">Recent owner and moderator actions, recorded when each change is saved.</p></div></div>

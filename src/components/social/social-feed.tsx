@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { Dumbbell, Heart, MessageCircle, Search, Share2, LoaderCircle, Trash2 } from "lucide-react";
@@ -116,6 +117,7 @@ export function FeedPost({ post,viewerId,onFollow }: { post: FeedWorkout; viewer
   </article>;
 }
 export function SocialFeed({ initialPosts,initialCursor,viewerId,initialError=false }: { initialPosts: FeedWorkout[]; initialCursor: FeedCursor | null; viewerId: string | null; initialError?: boolean }) {
+  const reduceMotion = useReducedMotion();
   const [tab,setTab] = useState<"discover" | "following">("discover");
   const [posts,setPosts] = useState(initialPosts);
   const [nextCursor,setNextCursor] = useState<FeedCursor | null>(initialCursor);
@@ -181,6 +183,7 @@ export function SocialFeed({ initialPosts,initialCursor,viewerId,initialError=fa
   }};
   const visiblePosts=tab==="following" ? posts.filter(post=>post.user.following) : posts;
   return <main className={styles.page+" social-shell"}>
+    <motion.div initial={{ opacity: 0, y: reduceMotion ? 0 : 14, filter: reduceMotion ? "blur(0px)" : "blur(6px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={{ duration: reduceMotion ? 0.01 : 0.45, ease: [0.22, 1, 0.36, 1], delay: reduceMotion ? 0 : 0.05 }}>
     <div className={styles.topline}><p className={styles.eyebrow}>ARCUS COMMUNITY</p><Link href="/dashboard" className={styles.trainingLink}>Your training<Dumbbell size={18} aria-hidden="true"/></Link></div>
     <header className={styles.titleRow}><div><h1>Home</h1><p>Good sessions travel. Find your training circle.</p></div></header>
     <div className={styles.searchBox} ref={searchBox}>
@@ -200,5 +203,6 @@ export function SocialFeed({ initialPosts,initialCursor,viewerId,initialError=fa
     <section role="tabpanel" id="social-feed-panel" tabIndex={0} aria-labelledby={"social-tab-"+tab} aria-busy={loading}>
       {loading ? <div className={styles.empty}><LoaderCircle className={styles.spin} aria-label="Loading feed"/></div> : error ? <div className={styles.empty}><p>We couldn’t load the feed.</p><button type="button" onClick={()=>void load(tab)}>Try again</button></div> : visiblePosts.length ? <><div className={styles.feedList}>{visiblePosts.map(post=><FeedPost key={post.ownerId+post.id} post={post} viewerId={viewerId} onFollow={followControl}/>)}</div>{nextCursor && <div className={styles.loadMore}><button type="button" disabled={paging} onClick={()=>void loadMore()}>{paging && <LoaderCircle className={styles.spin}/>} {paging ? "Loading…" : "Load more workouts"}</button></div>}</> : <FeedEmptyState/>}
     </section>
+    </motion.div>
   </main>;
 }

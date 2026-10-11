@@ -23,6 +23,8 @@ export function ApplicationShell({ children, currentYear }: { children: React.Re
   const isLegal = pathname === "/privacy" || pathname === "/terms";
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [announcement, setAnnouncement] = useState("");
+  const [announcementUrl, setAnnouncementUrl] = useState("");
+  const [announcementActive, setAnnouncementActive] = useState(false);
 
   useEffect(() => {
     if (isAdmin || isLegal) return;
@@ -32,8 +34,8 @@ export function ApplicationShell({ children, currentYear }: { children: React.Re
       try {
         const response = await fetch("/api/runtime-flags");
         if (!response.ok) return;
-        const data = await response.json() as { maintenanceMode?: boolean; announcement?: string };
-        if (active) { setMaintenanceMode(data.maintenanceMode === true); setAnnouncement(typeof data.announcement === "string" ? data.announcement : ""); }
+        const data = await response.json() as { maintenanceMode?: boolean; announcement?: string; announcementUrl?: string; announcementActive?: boolean };
+        if (active) { setMaintenanceMode(data.maintenanceMode === true); setAnnouncement(typeof data.announcement === "string" ? data.announcement : ""); setAnnouncementUrl(typeof data.announcementUrl === "string" ? data.announcementUrl : ""); setAnnouncementActive(data.announcementActive === true); }
       } catch { /* Local-first app stays usable when the remote database is offline. */ }
     };
     void refresh();
@@ -44,13 +46,13 @@ export function ApplicationShell({ children, currentYear }: { children: React.Re
   // Admin identity/data comes only from the server. Do not start device-local
   // workout sync, profile hydration or consumer navigation on owner routes.
   if (isAdmin) return children;
-  if (maintenanceMode && !isLegal) return <><GlobalAnnouncementBanner message={announcement}/><main className="runtime-maintenance" role="status">
+  if (maintenanceMode && !isLegal) return <><GlobalAnnouncementBanner message={announcement} href={announcementUrl} active={announcementActive}/><main className="runtime-maintenance" role="status">
     <span className="runtime-maintenance-kicker">ARCUS · SYSTEM NOTICE</span>
     <h1>We’ll be back shortly.</h1>
     <p>ARCUS is temporarily paused while maintenance is in progress. Your saved training data remains safe. Please check back soon.</p>
   </main></>;
   return <UserProfileProvider><ThemeProvider><WorkoutProvider><ToastProvider>
-    <GlobalAnnouncementBanner message={announcement}/>
+    <GlobalAnnouncementBanner message={announcement} href={announcementUrl} active={announcementActive}/>
     <RouteTitle/><ServiceWorkerRegistration/><SyncManager/><RecapManager/><NetworkStatus/><MobileAppHeader/>
     <RouteTransition>{children}</RouteTransition><MobileNavigation/><LegalFooter year={currentYear} tagline={pathname === "/welcome" ? "CONSISTENCY OVER COMPLEXITY" : undefined}/><CookieConsent/>
   </ToastProvider></WorkoutProvider></ThemeProvider></UserProfileProvider>;

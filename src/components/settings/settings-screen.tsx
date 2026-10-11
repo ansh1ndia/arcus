@@ -6,6 +6,7 @@ import { ArrowLeft, Bell, Check, ChevronRight, Database, Dumbbell, ShieldCheck }
 import { ThemeToggle } from "@/components/shared/theme-provider";
 import { useProfile } from "@/components/shared/user-profile-provider";
 import { readTimerAudioEnabled, writeTimerAudioEnabled } from "@/lib/gym-audio";
+import { readLockScreenCompanionEnabled, writeLockScreenCompanionEnabled } from "@/lib/lockscreen-companion";
 import styles from "./settings-screen.module.css";
 
 type Notice = { kind: "success" | "error"; text: string } | null;
@@ -16,6 +17,7 @@ export function SettingsScreen() {
   const [saving, setSaving] = useState(false);
   const [restDraft, setRestDraft] = useState(String(preferences.defaultRestTimer));
   const [audioEnabled, setAudioEnabled] = useState(true);
+  const [lockScreenEnabled, setLockScreenEnabled] = useState(true);
   const [recapAlerts, setRecapAlerts] = useState(false);
   const [notificationAvailable, setNotificationAvailable] = useState(true);
 
@@ -25,6 +27,7 @@ export function SettingsScreen() {
 
   useEffect(() => {
     setAudioEnabled(readTimerAudioEnabled());
+    setLockScreenEnabled(readLockScreenCompanionEnabled());
     const available = "Notification" in window;
     setNotificationAvailable(available);
     setRecapAlerts(available && localStorage.getItem("arcus-recap-alerts") === "enabled" && Notification.permission === "granted");
@@ -76,6 +79,13 @@ export function SettingsScreen() {
     setNotice({ kind: "success", text: `Rest timer audio is ${next ? "on" : "muted"}.` });
   }
 
+  function toggleLockScreenCompanion() {
+    const next = !lockScreenEnabled;
+    writeLockScreenCompanionEnabled(next);
+    setLockScreenEnabled(next);
+    setNotice({ kind: "success", text: `Lock Screen Companion is ${next ? "on" : "off"}. Availability depends on your browser and device.` });
+  }
+
   const syncLabel = !user ? "Device profile" : user.syncStatus === "synced" ? "Synced to your account" : user.syncStatus === "error" ? "Sync needs attention" : "Saved on this device · sync pending";
 
   return <main className={`social-shell ${styles.shell}`}>
@@ -101,6 +111,7 @@ export function SettingsScreen() {
         <div className={styles.rows}>
           <label className={styles.row} htmlFor="settings-units"><span><strong>Weight units</strong><small>Choose how weights are displayed</small></span><select id="settings-units" value={preferences.units} disabled={saving} onChange={event => void updatePreferences({ ...preferences, units: event.target.value as typeof preferences.units })}><option value="metric">Kilograms</option><option value="imperial">Pounds</option></select></label>
           <label className={styles.row} htmlFor="settings-rest"><span><strong>Default rest timer</strong><small>Used for exercises without a custom rest time</small></span><span className={styles.restInput}><input id="settings-rest" type="number" inputMode="numeric" min={0} max={1800} step={15} value={restDraft} disabled={saving} onChange={event => setRestDraft(event.target.value)} onBlur={() => { const parsed = Number(restDraft); const value = Number.isFinite(parsed) ? Math.min(1800, Math.max(0, Math.round(parsed))) : preferences.defaultRestTimer; setRestDraft(String(value)); if (value !== preferences.defaultRestTimer) void updatePreferences({ ...preferences, defaultRestTimer: value }); }} /><small>sec</small></span></label>
+          <div className={styles.row}><span><strong>Lock Screen Companion</strong><small>Show your workout timer in supported lock screen media controls</small></span><button className={styles.switch} role="switch" aria-checked={lockScreenEnabled} aria-label="Lock Screen Companion (Show timer on phone lock screen)" onClick={toggleLockScreenCompanion}><span /></button></div>
         </div>
       </section>
 

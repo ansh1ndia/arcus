@@ -44,10 +44,13 @@ test("RBAC protects the root owner and moderators from moderator actions", () =>
 });
 
 test("admin route parameters are bounded, deterministic, and retain literal search text", () => {
-  assert.deepEqual(parseAdminQuery({ q: "  O'Hara %_  ", page: "3", muscle: " Biceps " }), { page: 3, query: "O'Hara %_", muscle: " Biceps ", category: "", pageSize: 25 });
+  assert.deepEqual(parseAdminQuery({ q: "  O'Hara %_  ", page: "3", muscle: " Biceps " }), { page: 3, query: "O'Hara %_", muscle: " Biceps ", category: "", status: "all", pageSize: 20 });
   for (const page of ["", "-10", "1.5", "NaN", "1e8", "Infinity"]) assert.equal(parseAdminQuery({ page }).page, 1);
   assert.equal(parseAdminQuery({ page: "0" }).page, 1);
   assert.equal(parseAdminQuery({ page: "99999999999999999999999999" }).page, 10_000);
+  assert.equal(parseAdminQuery({ status: "warned" }).status, "warned");
+  assert.equal(parseAdminQuery({ status: "admins" }).status, "admins");
+  assert.equal(parseAdminQuery({ status: "owner" }).status, "all");
   assert.equal(parseAdminQuery({ q: "x".repeat(200), muscle: "m".repeat(200) }).query.length, 100);
   assert.equal(parseAdminQuery({ muscle: "m".repeat(200) }).muscle.length, 100);
   assert.equal(parseAdminQuery({ page: ["2", "500"], q: ["first", "ignored"] }).page, 2);

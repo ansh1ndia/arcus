@@ -12,9 +12,9 @@ import {
 import type { AdminOverview } from "@/features/admin/model";
 import type { AdminFeatureFlagState, AdminPulseItem } from "@/features/admin/model";
 import { AdminLink } from "./admin-shell";
-import { UserGrowthChart } from "./user-growth-chart";
 import { AdminLivePulse } from "./admin-live-pulse";
 import { FeatureFlags } from "./feature-flags";
+import { MiniSparkline } from "./MiniSparkline";
 
 const numberFormat = new Intl.NumberFormat("en");
 const snapshotFormat = new Intl.DateTimeFormat("en", {
@@ -74,7 +74,7 @@ export function OverviewDashboard({ data, pulse = [], featureFlags = { flags: { 
       </section>
 
       <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
-        <UserGrowthChart growth={data.growth} />
+        <MiniSparkline points={data.activity14}/>
 
         <aside className="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-1" aria-label="Platform context and management">
           <section className="admin-panel rounded-xl border border-[#e2e8ef] bg-white p-5 sm:p-6" aria-labelledby="platform-snapshot-heading">

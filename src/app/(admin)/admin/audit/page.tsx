@@ -4,7 +4,7 @@ import { getAdminActivity } from "@/features/admin/repository";
 
 export const metadata: Metadata = { title: "Audit Log", description: "Review moderator and owner actions across ARCUS." };
 const labels: Record<string, string> = {
-  user_updated: "Edited user profile", user_warned: "Issued user warning", user_suspended: "Suspended user for 7 days",
+  user_updated: "Edited user profile", user_warned: "Issued user warning", user_unwarned: "Cleared user warning", user_suspended: "Suspended user for 7 days",
   user_unsuspended: "Lifted user suspension", user_banned: "Permanently banned user", user_unbanned: "Restored user access",
   exercise_updated: "Updated exercise", exercise_deleted: "Deleted exercise", feature_flag_updated: "Changed feature flag",
   announcement_updated: "Updated global announcement", admin_granted: "Granted moderator access", admin_revoked: "Revoked moderator access",

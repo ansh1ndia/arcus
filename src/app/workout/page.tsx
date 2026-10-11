@@ -33,10 +33,11 @@ import { GroupExercises, GroupedExercises } from "@/components/workout/group-exe
 import { useProfile } from "@/components/shared/user-profile-provider";
 import { useWorkout } from "@/components/shared/workout-provider";
 import { SaveRoutineModal } from "@/components/routines/SaveRoutineModal";
-import type { ExerciseSettings } from "@/features/profile/model";
+import type { ExerciseSettings, Units } from "@/features/profile/model";
 import { groupRoundComplete, nextLoad, formatWeight, fromDisplayWeight, toDisplayWeight, weightUnit, detectRecords } from "@/features/training/logic";
 import { programSchedule } from "@/features/programs/schedule";
-import { readTimerAudioEnabled, unlockGymAudio, writeTimerAudioEnabled } from "@/lib/gym-audio";
+import { playTimerCompletionSound, readTimerAudioEnabled, triggerTimerCompletionHaptic, unlockGymAudio, writeTimerAudioEnabled } from "@/lib/gym-audio";
+import { LockScreenCompanion, readLockScreenCompanionEnabled, type LockScreenActions, type LockScreenMetadata } from "@/lib/lockscreen-companion";
 import { ElapsedWorkoutTime } from "@/components/workout/ElapsedWorkoutTime";
 import { RestTimerView } from "@/components/workout/RestTimerView";
 import WorkoutSetEditorRow from "@/components/workout/WorkoutSetEditorRow";
@@ -64,6 +65,27 @@ function adjustNumber(value: number | null, delta: number, minimum = 0) {
   return Math.max(minimum, (value ?? 0) + delta);
 }
 
+function createLockScreenMetadata(workout: WorkoutRecord, restEnd: number | null, pausedRemaining: number | null, units: Units): LockScreenMetadata {
+  let exercise: WorkoutExercise | undefined;
+  let set: LoggedSet | undefined;
+  for (const candidate of workout.exercises) {
+    const next = candidate.sets.find((item) => !item.completed);
+    if (next) { exercise = candidate; set = next; break; }
+  }
+  const restRemainingSeconds = pausedRemaining ?? (restEnd === null ? null : Math.max(0, Math.ceil((restEnd - Date.now()) / 1000)));
+  return {
+    workoutName: workout.name,
+    exerciseName: exercise?.name ?? null,
+    weightLabel: set?.weight != null ? formatWeight(set.weight, units) : null,
+    reps: set?.reps ?? exercise?.targetRepMin ?? null,
+    setNumber: exercise && set ? exercise.sets.filter((item) => item.completed).length + 1 : 1,
+    totalSets: workout.exercises.reduce((count, item) => count + item.sets.length, 0),
+    elapsedMinutes: Math.max(0, Math.floor((Date.now() - Date.parse(workout.startedAt)) / 60_000)),
+    restRemainingSeconds,
+    paused: pausedRemaining !== null,
+  };
+}
+
 export default function WorkoutPage() {
   const { showToast } = useToast();
   const {workout,setWorkout}=useWorkout();
@@ -82,7 +104,9 @@ export default function WorkoutPage() {
   const { vibrate } = comfort;
 
   const [restEnd, setRestEnd] = useState<number | null>(null);
+  const [restPausedRemaining, setRestPausedRemaining] = useState<number | null>(null);
   const [audioEnabled, setAudioEnabled] = useState(true);
+  const [lockScreenEnabled, setLockScreenEnabled] = useState(true);
   const [online, setOnline] = useState(true);
   const [message, setMessage] = useState("");
   const [setError, setSetError] = useState<{ id: string; message: string } | null>(null);
@@ -91,6 +115,10 @@ export default function WorkoutPage() {
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const latestWorkoutRef = useRef(workout);
   useEffect(() => { latestWorkoutRef.current = workout; }, [workout]);
+  const restEndRef = useRef<number | null>(restEnd);
+  const restPausedRef = useRef<number | null>(restPausedRemaining);
+  useEffect(() => { restEndRef.current = restEnd; }, [restEnd]);
+  useEffect(() => { restPausedRef.current = restPausedRemaining; }, [restPausedRemaining]);
   const saveVersionRef = useRef(0);
   usePageTitle(workout?.name.trim() || (completedWorkout ? `${completedWorkout.name} · Complete` : "Workout"));
 
@@ -159,6 +187,7 @@ export default function WorkoutPage() {
         if (current) {
           if (current.restUntil && Date.parse(current.restUntil) > Date.now()) {
             setRestEnd(Date.parse(current.restUntil));
+            restEndRef.current = Date.parse(current.restUntil);
           }
         }
         setReady(true);
@@ -169,18 +198,16 @@ export default function WorkoutPage() {
 
   useEffect(() => {
     setAudioEnabled(readTimerAudioEnabled());
+    setLockScreenEnabled(readLockScreenCompanionEnabled());
     const updateOnline = () => setOnline(navigator.onLine);
+    const updateCompanionPreference = (event: Event) => setLockScreenEnabled(event instanceof CustomEvent ? event.detail : readLockScreenCompanionEnabled());
     updateOnline();
     window.addEventListener("online", updateOnline);
     window.addEventListener("offline", updateOnline);
-    return () => { window.removeEventListener("online", updateOnline); window.removeEventListener("offline", updateOnline); };
+    window.addEventListener("arcus-lockscreen-companion-change", updateCompanionPreference);
+    window.addEventListener("storage", updateCompanionPreference);
+    return () => { window.removeEventListener("online", updateOnline); window.removeEventListener("offline", updateOnline); window.removeEventListener("arcus-lockscreen-companion-change", updateCompanionPreference); window.removeEventListener("storage", updateCompanionPreference); };
   }, []);
-  useEffect(() => {
-    const unlockOnFirstTap = () => { void unlockGymAudio(); };
-    window.addEventListener("pointerdown", unlockOnFirstTap, { once: true, passive: true });
-    return () => window.removeEventListener("pointerdown", unlockOnFirstTap);
-  }, []);
-
   // Keep the emergency browser backup quiet while the lifter types; flush immediately on exit.
   useEffect(() => {
     if (workout?.status !== "active") return;
@@ -219,29 +246,102 @@ export default function WorkoutPage() {
 
   const handleRestEndTimeChange = useCallback((endTime: number) => {
     setRestEnd(endTime);
+    restEndRef.current = endTime;
+    restPausedRef.current = null;
+    setRestPausedRemaining(null);
     const current = latestWorkoutRef.current;
     if (current?.status === "active") void persist({ ...current, restUntil: new Date(endTime).toISOString() });
   }, [persist]);
   const handleRestDismiss = useCallback(() => {
     setRestEnd(null);
+    restEndRef.current = null;
+    restPausedRef.current = null;
+    setRestPausedRemaining(null);
     const current = latestWorkoutRef.current;
     if (current?.status === "active") void persist({ ...current, restUntil: null });
   }, [persist]);
   const handleRestComplete = useCallback(() => {
     setRestEnd(null);
+    restEndRef.current = null;
+    restPausedRef.current = null;
+    setRestPausedRemaining(null);
     setMessage("Rest finished. Ready for the next round.");
     const current = latestWorkoutRef.current;
     if (current?.status === "active" && current.restUntil) void persist({ ...current, restUntil: null });
   }, [persist]);
+  const pauseRestTimer = useCallback(() => {
+    if (restEndRef.current === null || restPausedRef.current !== null) return;
+    const remaining = Math.max(0, Math.ceil((restEndRef.current - Date.now()) / 1000));
+    restPausedRef.current = remaining;
+    setRestPausedRemaining(remaining);
+  }, []);
+  const resumeRestTimer = useCallback(() => {
+    const remaining = restPausedRef.current;
+    if (remaining === null) return;
+    handleRestEndTimeChange(Date.now() + remaining * 1000);
+  }, [handleRestEndTimeChange]);
+  const skipRestTimer = useCallback(() => {
+    if (restEndRef.current === null && restPausedRef.current === null) return;
+    if (audioEnabled) playTimerCompletionSound();
+    triggerTimerCompletionHaptic();
+    handleRestDismiss();
+  }, [audioEnabled, handleRestDismiss]);
+  const extendRestTimer = useCallback((seconds: number) => {
+    const paused = restPausedRef.current;
+    if (paused !== null) {
+      const next = Math.min(1800, paused + seconds);
+      restPausedRef.current = next;
+      setRestPausedRemaining(next);
+      const current = latestWorkoutRef.current;
+      if (current?.status === "active") void persist({ ...current, restUntil: new Date(Date.now() + next * 1000).toISOString() });
+      return;
+    }
+    const endTime = restEndRef.current;
+    if (endTime !== null) handleRestEndTimeChange(Math.min(Date.now() + 1_800_000, Math.max(Date.now(), endTime) + seconds * 1000));
+  }, [handleRestEndTimeChange, persist]);
   const handleAudioToggle = useCallback(() => setAudioEnabled(current => {
     writeTimerAudioEnabled(!current);
     return !current;
   }), []);
+  const lockScreenActions = useMemo<LockScreenActions>(() => ({
+    skipRestTimer,
+    extendRestTimer,
+    pauseWorkoutTimer: pauseRestTimer,
+    resumeWorkoutTimer: resumeRestTimer,
+  }), [extendRestTimer, pauseRestTimer, resumeRestTimer, skipRestTimer]);
+
+  useEffect(() => {
+    const unlockOnFirstTap = () => {
+      void unlockGymAudio();
+      void LockScreenCompanion.unlock();
+      const current = latestWorkoutRef.current;
+      if (lockScreenEnabled && current?.status === "active") void LockScreenCompanion.start(createLockScreenMetadata(current, restEndRef.current, restPausedRef.current, units), lockScreenActions);
+    };
+    window.addEventListener("pointerdown", unlockOnFirstTap, { once: true, passive: true });
+    return () => window.removeEventListener("pointerdown", unlockOnFirstTap);
+  }, [lockScreenEnabled, lockScreenActions, units]);
+
+  useEffect(() => {
+    if (!lockScreenEnabled || workout?.status !== "active") {
+      LockScreenCompanion.stop();
+      return;
+    }
+    const publish = () => {
+      const current = latestWorkoutRef.current;
+      if (current?.status === "active") LockScreenCompanion.update(createLockScreenMetadata(current, restEndRef.current, restPausedRef.current, units));
+    };
+    const current = latestWorkoutRef.current;
+    if (current?.status === "active") void LockScreenCompanion.start(createLockScreenMetadata(current, restEndRef.current, restPausedRef.current, units), lockScreenActions);
+    const interval = window.setInterval(publish, 1000);
+    return () => window.clearInterval(interval);
+  }, [lockScreenEnabled, lockScreenActions, restEnd, restPausedRemaining, units, workout?.id, workout?.status]);
+  useEffect(() => () => LockScreenCompanion.stop(), []);
 
   const beginWorkout = async () => {
     if (busy) return;
-    setBusy("starting");
     const active = createWorkout();
+    if (lockScreenEnabled) void LockScreenCompanion.start(createLockScreenMetadata(active, null, null, units), lockScreenActions);
+    setBusy("starting");
     try {
       const completed = await getCompletedWorkouts();
       await saveWorkout(active);
@@ -396,6 +496,9 @@ export default function WorkoutPage() {
       });
       void persist({ ...currentWorkout, exercises, restUntil: null });
       setRestEnd(null);
+      restEndRef.current = null;
+      restPausedRef.current = null;
+      setRestPausedRemaining(null);
       return;
     }
     const error = setEntryError(set, exercise);
@@ -403,6 +506,7 @@ export default function WorkoutPage() {
     setSetError(null);
     setMessage("");
     void unlockGymAudio();
+    if (lockScreenEnabled) void LockScreenCompanion.start(createLockScreenMetadata(currentWorkout, restEndRef.current, restPausedRef.current, units), lockScreenActions);
     const timestamp = new Date().toISOString();
     const restEndAt = Date.now() + exercise.restSeconds * 1000;
     let exercises = currentWorkout.exercises.map((item) => item.id !== exercise.id ? item : {
@@ -424,7 +528,10 @@ export default function WorkoutPage() {
     void persist({ ...currentWorkout, exercises, restUntil: shouldRest?new Date(restEndAt).toISOString():null })
       .then(() => showToast(`Set ${set.index + 1} logged${filledNext ? " · Next set filled" : ` · ${exercise.name}`}`)).catch(() => undefined);
     setRestEnd(shouldRest?restEndAt:null);
-  }, [comfort.preferences.autoFill, history, persist, showToast, units, vibrate]);
+    restEndRef.current = shouldRest ? restEndAt : null;
+    restPausedRef.current = null;
+    setRestPausedRemaining(null);
+  }, [comfort.preferences.autoFill, history, lockScreenActions, lockScreenEnabled, persist, showToast, units, vibrate]);
 
   const finishWorkout = async () => {
     if (busy) return;
@@ -445,6 +552,7 @@ export default function WorkoutPage() {
     try {
       await saveQueueRef.current.catch(() => undefined);
       await saveWorkout(finished);
+      LockScreenCompanion.stop();
       clearWorkoutDraft(finished.id);
       // Keep the persisted pending revision for background sync. A failed request
       // must never write this snapshot over edits made later in History.
@@ -479,6 +587,7 @@ export default function WorkoutPage() {
     try {
       await saveQueueRef.current.catch(() => undefined);
       await deleteWorkout(workout.id);
+      LockScreenCompanion.stop();
       clearWorkoutDraft(workout.id);
       setWorkout(null);
       setRestEnd(null);
@@ -550,7 +659,7 @@ export default function WorkoutPage() {
       {plannedSets > 0 && <div className={styles.progressTrack} role="progressbar" aria-label="Completed sets" aria-valuemin={0} aria-valuemax={plannedSets} aria-valuenow={loggedSets}><span style={{width: `${loggedSets / plannedSets * 100}%`}}/></div>}
       {message && <div className={styles.notice} role="status"><p>{message}</p>{saveState === "error" && <button className={styles.retry} onClick={() => { setMessage(""); persist(workout); }}>Try saving again</button>}<button className={styles.dismiss} aria-label="Dismiss message" onClick={() => setMessage("")}><X size={16}/></button></div>}
 
-      {restEnd && <RestTimerView key={restEnd} endTime={restEnd} audioEnabled={audioEnabled} onAudioToggle={handleAudioToggle} onChangeEndTime={handleRestEndTimeChange} onDismiss={handleRestDismiss} onComplete={handleRestComplete}/>}
+      {restEnd && <RestTimerView key={restEnd} endTime={restEnd} pausedRemaining={restPausedRemaining} audioEnabled={audioEnabled} onAudioToggle={handleAudioToggle} onChangeEndTime={handleRestEndTimeChange} onDismiss={handleRestDismiss} onComplete={handleRestComplete}/>}
 
       {workout.exercises.length > 1 && <nav className="exercise-jump-nav" aria-label="Jump to exercise"><span>JUMP TO</span>{workout.exercises.map((exercise, index) => <button key={exercise.id} onClick={() => document.getElementById(`exercise-${exercise.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" })}>{String(index + 1).padStart(2, "0")} {exercise.name}</button>)}</nav>}
 

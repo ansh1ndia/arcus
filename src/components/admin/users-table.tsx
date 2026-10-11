@@ -1,6 +1,7 @@
 "use client";
 
 import { Mail } from "lucide-react";
+import Link from "next/link";
 import type { AdminTablePage, AdminUserRow } from "@/features/admin/model";
 import { DataTable, type DataTableColumn } from "./data-table";
 import { UserManagementActions } from "./user-management-actions";
@@ -28,7 +29,7 @@ function columns(ownerId: string, actorRole: "OWNER" | "MODERATOR"): DataTableCo
   },
   { id: "joined", header: "Joined", cell: row => <time dateTime={row.createdAt} className="whitespace-nowrap text-xs text-slate-500">{joinedDate(row.createdAt)}</time> },
   { id: "workouts", header: "Workouts", className: "text-right", cell: row => <span className="inline-flex min-w-7 justify-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium tabular-nums text-slate-600">{row.workoutCount.toLocaleString("en-US")}</span> },
-  { id: "status", header: "Status", cell: row => <div className="flex flex-wrap gap-1.5"><span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${row.role !== "USER" ? "border-sky-200 bg-sky-50 text-sky-800" : "border-slate-200 bg-slate-50 text-slate-600"}`}>{row.role}</span><span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${row.isBanned ? "border-rose-200 bg-rose-50 text-rose-700" : row.isSuspended ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-100 bg-emerald-50 text-emerald-800"}`}>{row.isBanned ? "Banned" : row.isSuspended ? "Suspended" : "Active"}</span></div> },
+  { id: "status", header: "Status", cell: row => <div className="flex max-w-48 flex-wrap gap-1.5"><span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${row.role !== "USER" ? "border-sky-200 bg-sky-50 text-sky-800" : "border-slate-200 bg-slate-50 text-slate-600"}`}>{row.role}</span><span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${row.isBanned ? "border-rose-200 bg-rose-50 text-rose-700" : row.isSuspended ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-100 bg-emerald-50 text-emerald-800"}`}>{row.isBanned ? "Banned" : row.isSuspended ? "Suspended" : "Active"}</span>{row.isPro && <span className="inline-flex items-center rounded-full border border-violet-100 bg-violet-50 px-2 py-1 text-[11px] font-medium text-violet-700">Pro</span>}{row.warningCount > 0 && <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-800">{row.warningCount} {row.warningCount === 1 ? "warning" : "warnings"}</span>}</div> },
   {
     id: "actions",
     header: <span className="sr-only">Actions</span>,
@@ -38,5 +39,20 @@ function columns(ownerId: string, actorRole: "OWNER" | "MODERATOR"): DataTableCo
 ]; }
 
 export function UsersTable({ data, ownerId, actorRole }: { data: AdminTablePage<AdminUserRow>; ownerId: string; actorRole: "OWNER" | "MODERATOR" }) {
-  return <DataTable data={data} columns={columns(ownerId, actorRole)} getRowId={row => row.id} basePath="/admin/users" caption="User directory" itemLabel="users" searchPlaceholder="Search name, username or email…" emptyTitle="No users found" emptyDescription={data.query ? "Try a different name, username or email address, or clear your search." : "Registered users will appear here once accounts are created."} tableClassName="min-w-[900px]" />;
+  const filters = [
+    ["all", "All users"], ["pro", "Pro only ⭐"], ["warned", "Warned ⚠️"],
+    ["suspended", "Suspended ⏳"], ["banned", "Banned 🚫"], ["admins", "Admins 👑"],
+  ] as const;
+  const href = (status: string) => {
+    const params = new URLSearchParams();
+    if (status !== "all") params.set("status", status);
+    if (data.query) params.set("q", data.query);
+    return `/admin/users${params.size ? `?${params}` : ""}`;
+  };
+  return <>
+    <nav aria-label="Filter users" className="mb-4 flex gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1.5">
+      {filters.map(([value,label]) => <Link key={value} href={href(value)} aria-current={(data.status ?? "all") === value ? "page" : undefined} className={`admin-button inline-flex min-h-9 shrink-0 items-center rounded-lg px-3 text-xs font-medium transition-colors ${(data.status ?? "all") === value ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-white hover:text-slate-900"}`}>{label}</Link>)}
+    </nav>
+    <DataTable data={data} columns={columns(ownerId, actorRole)} getRowId={row => row.id} basePath="/admin/users" caption="User directory" itemLabel="users" searchPlaceholder="Search name, username or email…" emptyTitle="No users found" emptyDescription={data.query ? "Try a different name, username or email address, or clear your search." : "Registered users will appear here once accounts are created."} tableClassName="min-w-[900px]" preservedParams={{ status: data.status === "all" ? "" : data.status ?? "" }} />
+  </>;
 }
