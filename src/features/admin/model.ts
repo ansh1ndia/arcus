@@ -18,10 +18,15 @@ export type AdminExerciseRow = {
   name: string;
   muscle: string;
   equipment: string;
-  source: "built-in" | "custom";
+  source: "built-in" | "custom" | "admin";
   ownerUsername: string | null;
   ownerAccountId: string | null;
   libraryId: string | null;
+  managed?: boolean;
+  category?: string;
+  primaryMuscles?: string[];
+  secondaryMuscles?: string[];
+  instructions?: string;
 };
 
 export type AdminActivityRow = {
@@ -65,4 +70,15 @@ export type AdminOverview = {
   asOf: string;
   builtInExercises: number;
   customExercises: number;
+};
+
+export type AdminRevenue = {
+  monthlySubscribers: number;
+  yearlySubscribers: number;
+  monthlyRecurringRevenue: number;
+  annualRunRate: number;
+  totalUsers: number;
+  proUsers: number;
+  conversionRate: number;
+  recent: Array<{ id: string; name: string; username: string; interval: "month" | "year"; startedAt: string; status: string }>;
 };

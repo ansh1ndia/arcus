@@ -3,7 +3,7 @@ import { cache } from "react";
 import { requireAdmin } from "@/lib/auth/admin";
 import { getDatabasePool } from "@/lib/db/pool";
 import { exerciseCatalog } from "@/features/exercises/catalog";
-import type { AdminAccessRow, AdminAccessState, AdminActivityRow, AdminExerciseRow, AdminFeatureFlagState, AdminFeatureFlags, AdminOverview, AdminPulseItem, AdminTablePage, AdminUserRow, FeatureFlagKey } from "./model";
+import type { AdminAccessRow, AdminAccessState, AdminActivityRow, AdminExerciseRow, AdminFeatureFlagState, AdminFeatureFlags, AdminOverview, AdminPulseItem, AdminRevenue, AdminTablePage, AdminUserRow, FeatureFlagKey } from "./model";
 import { isOwnerAccount } from "@/lib/auth/admin";
 import type { parseAdminQuery } from "./query";
 
@@ -58,6 +58,44 @@ export const getAdminOverview = cache(async (): Promise<AdminOverview> => {
   } catch { throw new Error("The admin data service is temporarily unavailable."); }
 });
 
+export const getAdminRevenue = cache(async (): Promise<AdminRevenue> => {
+  await requireAdmin();
+  try {
+    const result = await getDatabasePool().query<{
+      monthly: string; yearly: string; total_users: string; pro_users: string; recent: AdminRevenue["recent"];
+    }>(`
+      with active as (
+        select distinct on (s.account_id) s.account_id, s.plan_interval, s.created_at, s.status
+        from public.arcus_subscriptions s
+        join public.arcus_accounts a on a.id = s.account_id
+        where a.is_pro = true and a.subscription_status = 'active' and s.status = 'active'
+          and (s.current_period_end is null or s.current_period_end > now())
+        order by s.account_id, s.updated_at desc, s.created_at desc
+      ), totals as (
+        select count(*) filter (where plan_interval = 'month')::int as monthly,
+          count(*) filter (where plan_interval = 'year')::int as yearly from active
+      ), recent as (
+        select a.id, a.display_name as name, a.username, s.plan_interval as interval,
+          s.created_at as "startedAt", s.status
+        from active s join public.arcus_accounts a on a.id = s.account_id
+        order by s.created_at desc limit 20
+      )
+      select totals.monthly::text, totals.yearly::text,
+        (select count(*)::text from public.arcus_accounts) as total_users,
+        (select count(*)::text from public.arcus_accounts where is_pro=true) as pro_users,
+        coalesce((select jsonb_agg(recent order by recent."startedAt" desc) from recent), '[]'::jsonb) as recent
+      from totals
+    `);
+    const row = result.rows[0];
+    const monthlySubscribers = Number(row.monthly);
+    const yearlySubscribers = Number(row.yearly);
+    const monthlyRecurringRevenue = monthlySubscribers * 199 + yearlySubscribers * (1500 / 12);
+    const totalUsers = Number(row.total_users);
+    const proUsers = Number(row.pro_users);
+    return { monthlySubscribers, yearlySubscribers, monthlyRecurringRevenue, annualRunRate: monthlyRecurringRevenue * 12, totalUsers, proUsers, conversionRate: totalUsers ? (proUsers / totalUsers) * 100 : 0, recent: row.recent };
+  } catch { throw new Error("The admin revenue report is temporarily unavailable."); }
+});
+
 export async function getAdminUsers(options: QueryOptions): Promise<AdminTablePage<AdminUserRow>> {
   // Check at the data boundary too: Next layouts can persist across navigation.
   await requireAdmin();
@@ -98,41 +136,70 @@ export async function getAdminUsers(options: QueryOptions): Promise<AdminTablePa
 export async function getAdminExercises(options: QueryOptions): Promise<{ data: AdminTablePage<AdminExerciseRow>; muscleOptions: string[] }> {
   await requireAdmin();
   try {
-    const catalog = exerciseCatalog.map(({ id, name, muscle, equipment }) => ({ id, name, muscle, equipment }));
+    const catalog = exerciseCatalog.map(({ id, name, muscle, equipment, category, primaryMuscles, secondaryMuscles, instructions }) => ({ id, name, muscle, equipment, category: category ?? equipment, primary_muscles: primaryMuscles ?? [], secondary_muscles: secondaryMuscles ?? [], instructions: instructions ?? "" }));
     const result = await getDatabasePool().query<{
       total: number; page: number; rows: AdminExerciseRow[]; muscles: string[];
     }>(`
-      with definitions as (
-        select id, name, muscle, equipment, 'built-in'::text as source, null::text as owner,
-          null::text as owner_account_id, null::text as library_id
-        from jsonb_to_recordset($1::jsonb) as builtins(id text, name text, muscle text, equipment text)
+      with builtins as (
+        select b.id, coalesce(o.payload->>'name', b.name) as name,
+          coalesce(o.payload->>'muscle', b.muscle) as muscle,
+          coalesce(o.payload->>'equipment', b.equipment) as equipment,
+          coalesce(o.payload->>'category', b.category, b.equipment) as category,
+          coalesce(o.payload->'primaryMuscles', b.primary_muscles) as primary_muscles,
+          coalesce(o.payload->'secondaryMuscles', b.secondary_muscles) as secondary_muscles,
+          coalesce(o.payload->>'instructions', b.instructions) as instructions,
+          coalesce(o.payload->>'pattern', '') as pattern,
+          'built-in'::text as source, null::text as owner, null::text as owner_account_id,
+          null::text as library_id, o.id is not null as managed
+        from jsonb_to_recordset($1::jsonb) as b(id text, name text, muscle text, equipment text, category text, primary_muscles jsonb, secondary_muscles jsonb, instructions text)
+        left join public.arcus_admin_exercises o on o.id=b.id
+        where o.deleted is distinct from true
+      ), added as (
+        select o.id, coalesce(o.payload->>'name','Untitled exercise') as name,
+          coalesce(o.payload->>'muscle','Unspecified') as muscle,
+          coalesce(o.payload->>'equipment',o.payload->>'category','Other') as equipment,
+          coalesce(o.payload->>'category',o.payload->>'equipment','Other') as category,
+          coalesce(o.payload->'primaryMuscles','[]'::jsonb) as primary_muscles,
+          coalesce(o.payload->'secondaryMuscles','[]'::jsonb) as secondary_muscles,
+          coalesce(o.payload->>'instructions','') as instructions,
+          coalesce(o.payload->>'pattern','') as pattern,
+          'admin'::text as source, null::text as owner, null::text as owner_account_id,
+          null::text as library_id, true as managed
+        from public.arcus_admin_exercises o
+        where o.deleted=false and not exists (select 1 from jsonb_to_recordset($1::jsonb) as seed(id text) where seed.id=o.id)
+      ), definitions as (
+        select * from builtins union all select * from added
         union all
         select concat(l.account_id, '/', l.id), coalesce(nullif(l.payload ->> 'name', ''), 'Untitled exercise'),
           coalesce(nullif(l.payload ->> 'muscle', ''), 'Unspecified'),
-          coalesce(nullif(l.payload ->> 'equipment', ''), 'Unspecified'), 'custom', a.username,
-          l.account_id::text, l.id
+          coalesce(nullif(l.payload ->> 'equipment', ''), 'Unspecified'),
+          coalesce(l.payload->>'category',l.payload->>'equipment','Other'),
+          coalesce(l.payload->'primaryMuscles','[]'::jsonb), coalesce(l.payload->'secondaryMuscles','[]'::jsonb),
+          coalesce(l.payload->>'instructions',''), coalesce(l.payload->>'pattern',''),
+          'custom', a.username, l.account_id::text, l.id, false
         from public.arcus_library l join public.arcus_accounts a on a.id = l.account_id
         where l.kind = 'exercise' and l.payload ->> 'deleted' is distinct from 'true'
       ), matching as (
         select * from definitions where ($2::text = '' or strpos(lower(name), lower($2)) > 0
-          or strpos(lower(equipment), lower($2)) > 0 or strpos(lower(muscle), lower($2)) > 0)
-          and ($3::text = '' or muscle = $3)
+          or strpos(lower(equipment), lower($2)) > 0 or strpos(lower(muscle), lower($2)) > 0 or strpos(lower(category),lower($2))>0)
+          and ($3::text = '' or muscle = $3) and ($4::text = '' or category=$4)
       ), bounds as (
         select count(*)::int as total,
-          least($4::int, greatest(1, ceil(count(*)::numeric / $5::int)::int)) as page from matching
+          least($5::int, greatest(1, ceil(count(*)::numeric / $6::int)::int)) as page from matching
       ), paged as (
         select * from matching order by lower(name), id
-        limit $5::int offset (select (page - 1) * $5::int from bounds)
+        limit $6::int offset (select (page - 1) * $6::int from bounds)
       )
       select bounds.total, bounds.page, coalesce((
         select jsonb_agg(jsonb_build_object('id', id, 'name', name, 'muscle', muscle,
           'equipment', equipment, 'source', source, 'ownerUsername', owner,
-          'ownerAccountId', owner_account_id, 'libraryId', library_id) order by lower(name), id)
+          'ownerAccountId', owner_account_id, 'libraryId', library_id, 'managed', managed,
+          'category', category, 'primaryMuscles', primary_muscles, 'secondaryMuscles', secondary_muscles, 'instructions', instructions) order by lower(name), id)
         from paged
       ), '[]'::jsonb) as rows,
       coalesce((select jsonb_agg(muscle order by muscle) from (select distinct muscle from definitions) groups), '[]'::jsonb) as muscles
       from bounds
-    `, [JSON.stringify(catalog), options.query, options.muscle, options.page, options.pageSize]);
+    `, [JSON.stringify(catalog), options.query, options.muscle, options.category, options.page, options.pageSize]);
     const row = result.rows[0];
     return { data: { rows: row.rows, total: row.total, page: row.page, pageSize: options.pageSize, query: options.query }, muscleOptions: row.muscles };
   } catch { throw new Error("The admin exercise directory is temporarily unavailable."); }

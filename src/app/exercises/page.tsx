@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, ChevronDown, Clock3, Dumbbell, Filter, Plus, Search, Star, Trash2, X } from "lucide-react";
 import { exerciseCatalog, type Exercise } from "@/features/exercises/catalog";
+import { getManagedExerciseCatalog } from "@/features/exercises/managed-catalog";
 import { deleteCustomExercise, getExercisePreferences, listCustomExercises, saveCustomExercise, setExerciseFavorite } from "@/features/local-data/repository";
 import { EXERCISE_CATEGORIES, exerciseCategory, exerciseContent } from "@/features/exercises/content";
 import { filterPickerExercises, type PickerFilters, type PickerPreference } from "@/features/exercises/picker";
@@ -32,13 +33,13 @@ export default function ExercisesPage() {
   const byId = useMemo(() => new Map(preferences.map(preference => [preference.id, preference])), [preferences]);
 
   const refresh = async () => {
-    const [custom, prefs] = await Promise.all([listCustomExercises(), getExercisePreferences()]);
-    setCatalog([...exerciseCatalog, ...custom]); setPreferences(prefs); setReady(true);
+    const [globalCatalog, custom, prefs] = await Promise.all([getManagedExerciseCatalog(), listCustomExercises(), getExercisePreferences()]);
+    setCatalog([...globalCatalog, ...custom]); setPreferences(prefs); setReady(true);
   };
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([listCustomExercises(), getExercisePreferences()]).then(([custom, prefs]) => {
-      if (!cancelled) { setCatalog([...exerciseCatalog, ...custom]); setPreferences(prefs); setReady(true); }
+    void Promise.all([getManagedExerciseCatalog(), listCustomExercises(), getExercisePreferences()]).then(([globalCatalog, custom, prefs]) => {
+      if (!cancelled) { setCatalog([...globalCatalog, ...custom]); setPreferences(prefs); setReady(true); }
     }).catch(() => { if (!cancelled) setError("Could not read your saved exercises. Your built-in library is still available."); });
     return () => { cancelled = true; };
   }, []);

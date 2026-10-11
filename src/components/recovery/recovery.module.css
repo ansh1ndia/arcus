@@ -14,3 +14,4 @@
 @keyframes readinessPulse { 50% { opacity:.45; box-shadow:0 0 3px currentColor; } }
 .dot { animation:readinessPulse 2s ease-in-out infinite; }
 @media(prefers-reduced-motion:reduce) { .dot { animation:none; } }
+:global(html[data-theme="light"]) .card { border-color:rgba(228,228,231,.9); box-shadow:0 2px 8px rgba(0,0,0,.03); }

@@ -4,8 +4,8 @@
   --glass-border:rgba(255,255,255,.1);
 }
 html[data-theme="light"] {
-  --glass-background:rgba(255,255,255,.75);
-  --glass-border:rgba(0,0,0,.05);
+  --glass-background:rgba(255,255,255,.95);
+  --glass-border:rgba(212,212,216,1);
 }
 html, body { max-width:100%; overflow-x:hidden; }
 /* Clip sideways overflow without making body a separate sticky scroll container. */

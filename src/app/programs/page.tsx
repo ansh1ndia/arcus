@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, CalendarDays, ChevronDown, ChevronUp, Dumbbell, Plus, Search, Trash2 } from "lucide-react";
 import { exerciseCatalog, searchExercises } from "@/features/exercises/catalog";
+import { getManagedExerciseCatalog } from "@/features/exercises/managed-catalog";
 import { TemplateLibrary } from "@/components/programs/template-library";
 import type { ProgramDay, ProgramExercise, TrainingProgram } from "@/features/programs/model";
 import { listCustomExercises, listPrograms, markExerciseUsed, removeProgram, saveProgram } from "@/features/local-data/repository";
@@ -31,7 +32,7 @@ export default function ProgramsPage() {
   const [picker, setPicker] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const refresh = async () => setPrograms(await listPrograms());
-  useEffect(() => { let cancelled = false; void Promise.all([listPrograms(), listCustomExercises()]).then(([items, custom]) => { if (!cancelled) { setPrograms(items); setCatalog([...exerciseCatalog, ...custom]); setReady(true); } }).catch(() => { if (!cancelled) { setMessage("Could not open local program storage."); setReady(true); } }); return () => { cancelled = true; }; }, []);
+  useEffect(() => { let cancelled = false; void Promise.all([listPrograms(), getManagedExerciseCatalog(), listCustomExercises()]).then(([items, globalCatalog, custom]) => { if (!cancelled) { setPrograms(items); setCatalog([...globalCatalog, ...custom]); setReady(true); } }).catch(() => { if (!cancelled) { setMessage("Could not open local program storage."); setReady(true); } }); return () => { cancelled = true; }; }, []);
 
   const saveCurrent = async () => {
     if (!name.trim()) { setMessage("Give this program a name first."); return; }

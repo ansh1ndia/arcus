@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { AlertTriangle, Ban, LoaderCircle, MessageSquareWarning, Pencil, ShieldCheck, ShieldOff, UserRoundX } from "lucide-react";
 import type { AdminUserRow } from "@/features/admin/model";
 import { canManageUser } from "@/features/admin/access";
@@ -61,7 +62,7 @@ export function UserManagementActions({ user, ownerId, actorRole }: { user: Admi
     <div className="flex flex-col items-end gap-1">
       <RowActions label={user.username} detailsTitle="User details" actions={actions} details={<>
         <div className="mb-4 flex items-center gap-3"><span className="flex h-12 w-12 items-center justify-center rounded-full border border-teal-100 bg-teal-50 text-sm font-semibold text-teal-700" aria-hidden="true">{user.name.trim().split(/\s+/).slice(0, 2).map(part => part[0]?.toUpperCase()).join("") || "U"}</span><div><p className="font-semibold text-slate-900">{user.name || user.username}</p><p className="mt-1 text-sm text-slate-500">@{user.username}</p></div></div>
-        <dl><DetailField label="Role">{user.role}</DetailField><DetailField label="Account status">{user.isBanned ? "Permanently banned" : user.isSuspended ? `Suspended until ${new Date(user.suspendedUntil ?? "").toLocaleString()}` : "Active"}</DetailField><DetailField label="User ID" mono>{user.id}</DetailField><DetailField label="Name">{user.name || "Not available"}</DetailField><DetailField label="Username">@{user.username}</DetailField><DetailField label="Email address">{user.email || "Not available"}</DetailField><DetailField label="Joined">{new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(user.createdAt))}</DetailField><DetailField label="Recorded workouts">{user.workoutCount.toLocaleString("en-US")}</DetailField></dl>
+        <dl><DetailField label="Role">{user.role}</DetailField><DetailField label="Account status">{user.isBanned ? "Permanently banned" : user.isSuspended ? `Suspended until ${new Date(user.suspendedUntil ?? "").toLocaleString()}` : "Active"}</DetailField><DetailField label="User ID" mono>{user.id}</DetailField><DetailField label="Name">{user.name || "Not available"}</DetailField><DetailField label="Username">@{user.username}</DetailField><DetailField label="Email address">{user.email || "Not available"}</DetailField><DetailField label="Joined">{new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(user.createdAt))}</DetailField><DetailField label="Recorded workouts">{user.workoutCount.toLocaleString("en-US")}</DetailField></dl>{actorRole === "OWNER" && !targetIsPrivileged && <Link href={`/admin/users/${user.id}/view`} className="mt-4 inline-flex min-h-10 items-center rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-medium text-amber-900 hover:bg-amber-100">Read-only support view</Link>}
       </>} />
       {message && <span role="status" className="max-w-36 text-right text-[10px] leading-4 text-teal-700">{message}</span>}
     </div>

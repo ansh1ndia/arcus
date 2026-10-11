@@ -26,14 +26,14 @@ const secondary = [
 
 function hasAppNavigation(pathname: string) {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
-  return [...destinations, ...secondary].some(({ href }) => isActive(href));
+  return [...destinations, ...secondary].some(({ href }) => isActive(href)) || isActive("/settings");
 }
 
 export function MobileAppHeader() {
   const pathname = usePathname();
   if (!hasAppNavigation(pathname)) return null;
   return <header className={styles.mobileHeader} data-theme-surface>
-    <Link className={styles.mobileBrand} href="/home" aria-label="ARCUS home"><ArcusMark size={25}/><span>ARCUS.</span></Link>
+    <Link className={styles.mobileBrand} href="/home" aria-label="ARCUS home"><ArcusMark size={24}/><span>ARCUS.</span></Link>
     <ThemeToggle/>
   </header>;
 }
@@ -43,7 +43,7 @@ export function MobileNavigation() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   if (!hasAppNavigation(pathname)) return null;
 
-  const profileSection = ["/profile", "/programs", "/routines", "/progress", "/exercises", "/recaps", "/pro"].some(isActive);
+  const profileSection = ["/profile", "/programs", "/routines", "/progress", "/exercises", "/recaps", "/pro", "/settings"].some(isActive);
 
   return <><nav className={`desktop-navigation ${styles.desktop}`} aria-label="Main navigation">
     <Link className="brand" href="/home"><ArcusMark />ARCUS.</Link>
@@ -51,7 +51,7 @@ export function MobileNavigation() {
     <div className="desktop-account-section"><AccountAccess /><div className={styles.desktopThemeRow}><span>Theme</span><ThemeToggle/></div><p className="desktop-nav-note">YOUR TRAINING SPACE</p><nav className={styles.legalLinks} aria-label="Legal information"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></nav></div>
   </nav><nav className={`mobile-navigation ${styles.mobile}`} aria-label="Mobile navigation">
     {destinations.map(({ href, label, icon: Icon }) => <Link key={href} href={href} aria-current={isActive(href) || (href === "/profile" && profileSection) ? "page" : undefined}>
-      {href==="/profile"?<Avatar size={24}/>:<Icon size={21} aria-hidden="true" />}<span>{label}</span>
+      <Icon size={21} aria-hidden="true"/><span>{label}</span>
     </Link>)}
   </nav></>;
 }

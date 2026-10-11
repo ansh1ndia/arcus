@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, CheckCircle2, Dumbbell, Flame, Plus, Sparkles, Trash2, X, CalendarDays, Upload, ShieldCheck, ChevronDown, LoaderCircle } from "lucide-react";
 import { exerciseCatalog, type Exercise } from "@/features/exercises/catalog";
+import { getManagedExerciseCatalog } from "@/features/exercises/managed-catalog";
 import { calculateWorkoutTotals, createWorkout, isCardioExercise, type LoggedSet, type WorkoutExercise, type WorkoutRecord } from "@/features/workouts/model";
 import { generateWarmupSets } from "@/features/workouts/warmup";
 import { cacheWorkout, deleteWorkout, getActiveWorkout, getCompletedWorkouts, getWorkoutById, saveWorkout } from "@/features/workouts/repository";
@@ -95,10 +96,10 @@ export default function WorkoutPage() {
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([getActiveWorkout(), getCompletedWorkouts(), listPrograms(), listCustomExercises(), getExercisePreferences(),getLocalSession(),listExerciseSettings()]).then(async ([saved, completed, programs, customExercises, exercisePreferences,user,settings]) => {
+    void Promise.all([getActiveWorkout(), getCompletedWorkouts(), listPrograms(), getManagedExerciseCatalog(), listCustomExercises(), getExercisePreferences(),getLocalSession(),listExerciseSettings()]).then(async ([saved, completed, programs, managedExercises, customExercises, exercisePreferences,user,settings]) => {
       if (!cancelled) {
         setHistory(completed);
-        const availableExercises = [...exerciseCatalog, ...customExercises];
+        const availableExercises = [...managedExercises, ...customExercises];
         setCatalog(availableExercises);
         setPreferences(exercisePreferences);
         setExerciseSettings(settings);

@@ -13,6 +13,7 @@ export function parseAdminQuery(params: AdminSearchParams) {
     query: first(params.q).trim().slice(0, 100),
     // Dropdown values must match the full, untrimmed synced muscle label.
     muscle: first(params.muscle).slice(0, 100),
+    category: first(params.category).slice(0, 50),
     pageSize: ADMIN_PAGE_SIZE,
   };
 }
